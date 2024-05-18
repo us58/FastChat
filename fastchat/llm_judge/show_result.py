@@ -1,9 +1,56 @@
 """
 Usage:
 python3 show_result.py --mode [single|pairwise-baseline|pairwise-all]
+python show_result.py --bench-name mt_bench_de --input-file data/mt_bench_de/model_judgment/groq_single.jsonl
 """
 import argparse
 import pandas as pd
+import json
+import pytablewriter as ptw
+
+
+CATEGORIES = ["Writing", "Roleplay", "Reasoning", "Math", "Coding", "Extraction", "STEM", "Humanities"]
+
+
+def display_result_single_categories_table(args):
+    if args.input_file is None:
+        input_file = (
+            f"data/{args.bench_name}/model_judgment/{args.judge_model}_single.jsonl"
+        )
+    else:
+        input_file = args.input_file
+
+    scores = []
+    # Calculate mean of first and second turn
+    df_all = pd.read_json(input_file, lines=True)
+    df = df_all[["model", "score", "turn"]]
+    df = df[df["score"] != -1]
+    scores.append(df[df["turn"] == 1].groupby(["model", "turn"]).mean().iloc[0]['score'])
+    scores.append(df[df["turn"] == 2].groupby(["model", "turn"]).mean().iloc[0]['score'])
+    scores.append((scores[0] + scores[1]) / 2)  # average
+
+    # Calculate the scores per category
+    q2result = []
+    fin = open(input_file, "r")
+    for line in fin:
+        obj = json.loads(line)
+        obj["category"] = CATEGORIES[(obj["question_id"]-81)//10]
+        q2result.append(obj)
+    df = pd.DataFrame(q2result)
+
+    for cat in CATEGORIES:
+        # filter category/model, and score format error (<1% case)
+        res = df[(df["category"] == cat)]
+        score = res["score"].mean()
+        scores.append(score)
+
+    scores = [[df["model"][0]] + ["%.2f" % score for score in scores]]
+
+    # Print the table
+    headers = ["", "Round 1", "Round 2", "Average"] + CATEGORIES
+    writer = ptw.MarkdownTableWriter(headers=headers, value_matrix=scores)
+    print("\n\n")
+    print(writer.dumps())
 
 
 def display_result_single(args):
@@ -17,6 +64,7 @@ def display_result_single(args):
     print(f"Input file: {input_file}")
     df_all = pd.read_json(input_file, lines=True)
     df = df_all[["model", "score", "turn"]]
+    print(df)
     df = df[df["score"] != -1]
 
     if args.model_list is not None:
@@ -26,7 +74,7 @@ def display_result_single(args):
     df_1 = df[df["turn"] == 1].groupby(["model", "turn"]).mean()
     print(df_1.sort_values(by="score", ascending=False))
 
-    if args.bench_name == "mt_bench":
+    if args.bench_name == "mt_bench" or args.bench_name == "mt_bench_de":
         print("\n########## Second turn ##########")
         df_2 = df[df["turn"] == 2].groupby(["model", "turn"]).mean()
         print(df_2.sort_values(by="score", ascending=False))
@@ -120,11 +168,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.mode == "single":
-        display_result_func = display_result_single
+        display_result_func = display_result_single_categories_table
     else:
         if args.mode == "pairwise-all":
             args.baseline_model = None
         display_result_func = display_result_pairwise
 
-    print(f"Mode: {args.mode}")
+    # print(f"Mode: {args.mode}")
     display_result_func(args)

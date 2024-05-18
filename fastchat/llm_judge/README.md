@@ -1,3 +1,11 @@
+## MT-bench-de Usage exmaple with phi3 and groq as the judge:
+```
+python gen_model_answer.py --model-path microsoft/Phi-3-mini-4k-instruct --model-id Phi-3-mini-4k-instruct --dtype "bfloat16" --bench-name mt_bench_de
+python gen_judgment.py --model-list Phi-3-mini-4k-instruct --bench-name mt_bench_de --judge-model groq
+python show_result.py --bench-name mt_bench_de --input-file data/mt_bench_de/model_judgment/Phi-3-mini-4k-instruct_groq_single.jsonl
+```
+
+
 # LLM Judge
 | [Paper](https://arxiv.org/abs/2306.05685) | [Leaderboard](https://huggingface.co/spaces/lmsys/chatbot-arena-leaderboard) |
 

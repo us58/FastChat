@@ -24,6 +24,7 @@ class SeparatorStyle(IntEnum):
     ADD_NEW_LINE_SINGLE = auto()
     LLAMA2 = auto()
     LLAMA3 = auto()
+    PHI3 = auto()
     CHATGLM = auto()
     CHATML = auto()
     CHATINTERN = auto()
@@ -167,6 +168,19 @@ class Conversation:
                     ret += f"{message.strip()}<|eot_id|>"
                 else:
                     ret += f"<|start_header_id|>{role}<|end_header_id|>\n\n"
+            return ret
+        elif self.sep_style == SeparatorStyle.PHI3:
+            ret = "<s>"
+            if self.system_message:
+                ret += system_prompt
+            else:
+                ret += ""
+            for i, (role, message) in enumerate(self.messages):
+                if message:
+                    ret += f"<|{role}|>\n"
+                    ret += f"{message.strip()}<|end|>\n"
+                else:
+                    ret += f"<|{role}|>\n"
             return ret
         elif self.sep_style == SeparatorStyle.CHATGLM:
             # source: https://huggingface.co/THUDM/chatglm-6b/blob/1d240ba371910e9282298d4592532d7f0f3e9f3e/modeling_chatglm.py#L1302-L1308
@@ -1535,6 +1549,21 @@ register_conv_template(
         sep="",
         stop_str="<|eot_id|>",
         stop_token_ids=[128001, 128009],
+    )
+)
+
+# Phi-3 template
+# reference: https://huggingface.co/microsoft/Phi-3-mini-4k-instruct
+# reference: https://huggingface.co/microsoft/Phi-3-mini-4k-instruct/blob/main/tokenizer_config.json
+register_conv_template(
+    Conversation(
+        name="phi-3",
+        system_template="<|system|>\n{system_message}<|end|>\n",
+        roles=("user", "assistant"),
+        sep_style=SeparatorStyle.PHI3,
+        sep="",
+        stop_str="<|end|>",
+        stop_token_ids=[2, 32000, 32007],
     )
 )
 

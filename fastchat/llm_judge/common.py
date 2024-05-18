@@ -13,6 +13,7 @@ from typing import Optional
 
 import openai
 import anthropic
+import groq
 
 from fastchat.model.model_adapter import (
     get_conversation_template,
@@ -169,6 +170,8 @@ def run_judge_single(question, answer, judge, ref_answer, multi_turn=False):
         judgment = chat_completion_anthropic(
             model, conv, temperature=0, max_tokens=1024
         )
+    elif model == "groq":
+        judgment = chat_completion_groq(model, conv, temperature=0, max_tokens=2048)
     else:
         raise ValueError(f"Invalid judge model name: {model}")
 
@@ -422,6 +425,30 @@ def chat_completion_openai(model, conv, temperature, max_tokens, api_dict=None):
             output = response["choices"][0]["message"]["content"]
             break
         except openai.error.OpenAIError as e:
+            print(type(e), e)
+            time.sleep(API_RETRY_SLEEP)
+
+    return output
+
+
+def chat_completion_groq(model, conv, temperature, max_tokens, api_dict=None):
+    if api_dict is not None:
+        openai.api_base = api_dict["api_base"]
+        openai.api_key = api_dict["api_key"]
+    groq_client = groq.Groq()
+    output = API_ERROR_OUTPUT
+    for _ in range(API_MAX_RETRY):
+        try:
+            messages = conv.to_openai_api_messages()
+            response = groq_client.chat.completions.create(
+                model="llama3-70b-8192",
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+            output = response.choices[0].message.content
+            break
+        except groq.GroqError as e:
             print(type(e), e)
             time.sleep(API_RETRY_SLEEP)
 

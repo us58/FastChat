@@ -1,3 +1,5 @@
+Added MT-bench-de and groq API (llama3 70b instruct 8 bit quant) as llm judge. See fastchat/llm_judge for more information.
+
 # FastChat
 | [**Demo**](https://chat.lmsys.org/) | [**Discord**](https://discord.gg/HSWAKCrnFx) | [**X**](https://x.com/lmsysorg) |
 
