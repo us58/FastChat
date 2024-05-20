@@ -95,6 +95,7 @@ def get_model_answers(
         debug=False,
     )
 
+    first_prompt = True
     for question in tqdm(questions):
         if question["category"] in temperature_config:
             temperature = temperature_config[question["category"]]
@@ -111,6 +112,11 @@ def get_model_answers(
                 conv.append_message(conv.roles[0], qs)
                 conv.append_message(conv.roles[1], None)
                 prompt = conv.get_prompt()
+
+                if first_prompt:
+                    print("\n" + prompt + "\n")
+                    first_prompt = False
+
                 input_ids = tokenizer([prompt]).input_ids
 
                 if temperature < 1e-4:

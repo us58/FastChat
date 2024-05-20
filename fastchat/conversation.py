@@ -25,6 +25,7 @@ class SeparatorStyle(IntEnum):
     LLAMA2 = auto()
     LLAMA3 = auto()
     PHI3 = auto()
+    LEOLM = auto()
     CHATGLM = auto()
     CHATML = auto()
     CHATINTERN = auto()
@@ -181,6 +182,20 @@ class Conversation:
                     ret += f"{message.strip()}<|end|>\n"
                 else:
                     ret += f"<|{role}|>\n"
+            return ret
+        elif self.sep_style == SeparatorStyle.LEOLM:
+            ret = ""
+            if self.system_message:
+                ret += system_prompt + self.sep + "\n"
+
+            for role, message in self.messages:
+                if message:
+                    if type(message) is tuple:
+                        message, images = message
+                        message = IMAGE_PLACEHOLDER_STR * len(images) + message
+                    ret += role + "\n" + message + self.sep + "\n"
+                else:
+                    ret += role + "\n"
             return ret
         elif self.sep_style == SeparatorStyle.CHATGLM:
             # source: https://huggingface.co/THUDM/chatglm-6b/blob/1d240ba371910e9282298d4592532d7f0f3e9f3e/modeling_chatglm.py#L1302-L1308
@@ -770,11 +785,14 @@ Remember to tailor the activities to the birthday child's interests and preferen
 )
 
 # A template similar to the "one_shot" template above but remove the example.
+# Take this template for models that do not have a chat template.
 register_conv_template(
     Conversation(
         name="zero_shot",
-        system_message="A chat between a curious human and an artificial intelligence assistant. "
-        "The assistant gives helpful, detailed, and polite answers to the human's questions.",
+        system_message=(
+            "This is a conversation between an intelligent, helpful AI assistant and a user. "
+            "The assistant gives detailed, helpful and honest answers. The assistant always answers in German."
+        ),
         roles=("Human", "Assistant"),
         sep_style=SeparatorStyle.ADD_COLON_SINGLE,
         sep="\n### ",
@@ -1516,10 +1534,48 @@ register_conv_template(
     Conversation(
         name="mistral",
         system_template="[INST] {system_message}\n",
+        system_message=(
+            "This is a conversation between an intelligent, helpful AI assistant and a user. "
+            "The assistant gives detailed, helpful and honest answers. The assistant always answers in German."
+        ),
         roles=("[INST]", "[/INST]"),
         sep_style=SeparatorStyle.LLAMA2,
         sep=" ",
         sep2="</s>",
+    )
+)
+
+# LeoLM mistral chat models template
+# source: https://huggingface.co/LeoLM/leo-mistral-hessianai-7b-chat
+register_conv_template(
+    Conversation(
+        name="leolm-mistral-chat",
+        system_template="<|im_start|>system\n{system_message}",
+        system_message=(
+            "Dies ist eine Unterhaltung zwischen einem intelligenten, hilfsbereitem KI-Assistenten und einem Nutzer. "
+            "Der Assistent gibt ausführliche, hilfreiche und ehrliche Antworten."
+        ),
+        roles=("<|im_start|>user", "<|im_start|>assistant"),
+        sep_style=SeparatorStyle.LEOLM,
+        sep="<|im_end|>",
+        stop_token_ids=[2, 32001],
+    )
+)
+
+# LeoLM llama 2 chat models template
+# source: https://huggingface.co/LeoLM/leo-mistral-hessianai-7b-chat
+register_conv_template(
+    Conversation(
+        name="leolm-llama2-chat",
+        system_template="<|im_start|>system\n{system_message}",
+        system_message=(
+            "Dies ist eine Unterhaltung zwischen einem intelligenten, hilfsbereitem KI-Assistenten und einem Nutzer. "
+            "Der Assistent gibt ausführliche, hilfreiche und ehrliche Antworten."
+        ),
+        roles=("<|im_start|>user", "<|im_start|>assistant"),
+        sep_style=SeparatorStyle.LEOLM,
+        sep="<|im_end|>",
+        stop_token_ids=[2, 32006],
     )
 )
 
@@ -1530,6 +1586,10 @@ register_conv_template(
     Conversation(
         name="llama-2",
         system_template="[INST] <<SYS>>\n{system_message}\n<</SYS>>\n\n",
+        system_message=(
+            "This is a conversation between an intelligent, helpful AI assistant and a user. "
+            "The assistant gives detailed, helpful and honest answers. The assistant always answers in German."
+        ),
         roles=("[INST]", "[/INST]"),
         sep_style=SeparatorStyle.LLAMA2,
         sep=" ",
@@ -1544,6 +1604,10 @@ register_conv_template(
     Conversation(
         name="llama-3",
         system_template="<|start_header_id|>system<|end_header_id|>\n\n{system_message}<|eot_id|>",
+        system_message=(
+            "This is a conversation between an intelligent, helpful AI assistant and a user. "
+            "The assistant gives detailed, helpful and honest answers. The assistant always answers in German."
+        ),
         roles=("user", "assistant"),
         sep_style=SeparatorStyle.LLAMA3,
         sep="",
@@ -1559,6 +1623,10 @@ register_conv_template(
     Conversation(
         name="phi-3",
         system_template="<|system|>\n{system_message}<|end|>\n",
+        system_message=(
+            "This is a conversation between an intelligent, helpful AI assistant and a user. "
+            "The assistant gives detailed, helpful and honest answers. The assistant always answers in German."
+        ),
         roles=("user", "assistant"),
         sep_style=SeparatorStyle.PHI3,
         sep="",
